@@ -74,11 +74,11 @@ To run the bot, you'll need to configure a few sensitive variables. Here's how t
 - **`API_HASH`**: Your API Hash from [telegram.org](https://my.telegram.org/auth).
 - **`BOT_TOKEN`**: Get your bot token from [@BotFather](https://t.me/botfather).
 - **`OWNER_ID`**: Use [@missrose_bot](https://t.me/missrose_bot) to get your user ID by sending `/info`.
-- **`CHANNEL_ID`**: The ID of the channel for forced subscription.
 - **`LOG_GROUP`**: A group or channel where the bot logs messages. Forward a message to [@userinfobot](https://t.me/userinfobot) to get your channel/group ID.
 - **`MONGO_DB`**: A MongoDB URL for storing session data (recommended for security).
   
 ### Additional Configuration Options:
+- **`FORCE_SUB`**: (Optional) The ID of the channel/group for forced subscription. Users must join this channel before using the bot. Leave empty or set to `0` to disable force subscription. To get a channel ID, forward a message from the channel to [@userinfobot](https://t.me/userinfobot).
 - **`STRING`**: (Optional) Add your **premium account session string** here to allow 4GB file uploads. This is **optional** and can be left empty if not used.
 - **`FREEMIUM_LIMIT`**: Default is `0`. Set this to any value you want to allow free users to extract content. If set to `0`, free users will not have access to any extraction features.
 - **`PREMIUM_LIMIT`**: Default is `500`. This is the batch limit for premium users. You can customize this to allow premium users to process more links/files in one batch.

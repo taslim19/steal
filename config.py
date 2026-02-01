@@ -30,7 +30,10 @@ DB_NAME      = os.getenv("DB_NAME", "telegram_downloader")
 OWNER_ID     = list(map(int, os.getenv("OWNER_ID", "").split()))  # space-separated list
 STRING       = os.getenv("STRING", None)  # optional session string
 LOG_GROUP    = int(os.getenv("LOG_GROUP", "-1001234456"))
-FORCE_SUB    = int(os.getenv("FORCE_SUB", "-10012345567"))
+# FORCE_SUB: Optional - Set to channel/group ID to force users to join before using bot
+# Leave empty or set to 0 to disable force subscription
+FORCE_SUB_ENV = os.getenv("FORCE_SUB", "").strip()
+FORCE_SUB    = int(FORCE_SUB_ENV) if FORCE_SUB_ENV and FORCE_SUB_ENV != "0" else None
 
 # ─── SECURITY KEYS ──────────────────────────────────────────────────────────────
 MASTER_KEY   = os.getenv("MASTER_KEY", "gK8HzLfT9QpViJcYeB5wRa3DmN7P2xUq")  # session encryption

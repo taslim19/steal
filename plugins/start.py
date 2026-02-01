@@ -4,25 +4,58 @@
 
 from shared_client import app
 from pyrogram import filters
-from pyrogram.errors import UserNotParticipant
+from pyrogram.errors import UserNotParticipant, ChatNotFound, ChannelInvalid, PeerIdInvalid
 from pyrogram.types import BotCommand, InlineKeyboardButton, InlineKeyboardMarkup
 from config import LOG_GROUP, OWNER_ID, FORCE_SUB
 
 async def subscribe(app, message):
-    if FORCE_SUB:
+async def subscribe(app, message):
+    # Skip force subscription check if FORCE_SUB is not set (None or 0)
+    if not FORCE_SUB:
+        return 0
+    
+    try:
+        # First, verify the chat exists and bot has access
         try:
-          user = await app.get_chat_member(FORCE_SUB, message.from_user.id)
-          if str(user.status) == "ChatMemberStatus.BANNED":
-              await message.reply_text("You are Banned. Contact -- Team SPY")
-              return 1
+            chat = await app.get_chat(FORCE_SUB)
+        except (ChatNotFound, ChannelInvalid, PeerIdInvalid) as e:
+            # Chat doesn't exist or bot doesn't have access - skip force subscription check
+            print(f"Warning: FORCE_SUB chat {FORCE_SUB} is invalid or inaccessible: {e}")
+            return 0  # Continue normally without force subscription check
+        
+        # Now check if user is a member
+        try:
+            user = await app.get_chat_member(FORCE_SUB, message.from_user.id)
+            if str(user.status) == "ChatMemberStatus.BANNED":
+                await message.reply_text("You are Banned. Contact -- Team SPY")
+                return 1
         except UserNotParticipant:
-            link = await app.export_chat_invite_link(FORCE_SUB)
-            caption = f"Join our channel to use the bot"
-            await message.reply_photo(photo="https://graph.org/file/d44f024a08ded19452152.jpg",caption=caption, reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Join Now...", url=f"{link}")]]))
-            return 1
-        except Exception as ggn:
-            await message.reply_text(f"Something Went Wrong. Contact admins... with following message {ggn}")
-            return 1 
+            # User is not a participant, show join button
+            try:
+                link = await app.export_chat_invite_link(FORCE_SUB)
+                caption = f"Join our channel to use the bot"
+                await message.reply_photo(photo="https://graph.org/file/d44f024a08ded19452152.jpg",caption=caption, reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Join Now...", url=f"{link}")]]))
+                return 1
+            except Exception as link_error:
+                # If we can't export invite link, try to get chat username
+                try:
+                    chat_username = chat.username
+                    if chat_username:
+                        join_url = f"https://t.me/{chat_username}"
+                        caption = f"Join our channel to use the bot"
+                        await message.reply_photo(photo="https://graph.org/file/d44f024a08ded19452152.jpg",caption=caption, reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Join Now...", url=join_url)]]))
+                        return 1
+                    else:
+                        # No username and can't export link - skip check
+                        print(f"Warning: Cannot export invite link for FORCE_SUB {FORCE_SUB}: {link_error}")
+                        return 0
+                except Exception:
+                    print(f"Warning: Cannot get chat info for FORCE_SUB {FORCE_SUB}: {link_error}")
+                    return 0
+    except Exception as ggn:
+        # For any other unexpected error, log it and skip the check to avoid blocking users
+        print(f"Error in force subscription check: {ggn}")
+        return 0  # Continue normally instead of blocking 
      
 @app.on_message(filters.command("set"))
 async def set(_, message):
