@@ -15,6 +15,9 @@ import re
 # Store user conversation state
 FORWARD_STATE = {}
 
+# Debug: Print when module is loaded
+print("Forward plugin loaded successfully!")
+
 async def parse_group_topic(input_text):
     """
     Parse group_id/topic_id format
@@ -68,10 +71,13 @@ async def parse_message_range(input_text):
     
     return None, None
 
+# Register forward command handler
+print("Registering forward command handler...")
 @app.on_message(filters.command("forward") & filters.private)
 async def forward_command(client, message: Message):
     """Start the forward command process"""
     try:
+        print(f"Forward command received from user {message.from_user.id}")  # Debug
         user_id = message.from_user.id
         
         # Initialize conversation state
@@ -93,7 +99,12 @@ async def forward_command(client, message: Message):
         )
     except Exception as e:
         print(f"Error in forward_command: {e}")
-        await message.reply_text(f"❌ Error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        try:
+            await message.reply_text(f"❌ Error: {str(e)}")
+        except:
+            pass
 
 @app.on_message(filters.command("cancel") & filters.private)
 async def cancel_forward(client, message: Message):
