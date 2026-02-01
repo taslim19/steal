@@ -7,7 +7,9 @@ from pyrogram.types import Message
 from pyrogram.errors import BadRequest, FloodWait
 from shared_client import app
 from plugins.start import subscribe as sub
+from plugins.batch import get_uclient
 from utils.custom_filters import login_in_progress
+from config import API_ID, API_HASH
 import asyncio
 import re
 
@@ -88,6 +90,9 @@ async def forward_command(client: app, message: Message):
         "- `123` is the topic ID (message_thread_id)\n\n"
         "Or just send group ID if you want to forward from the main chat:\n"
         "`-1001234567890`\n\n"
+        "**Note:**\n"
+        "• For **public groups**: Bot needs to be admin\n"
+        "• For **private groups**: You need to login with `/login` first\n\n"
         "Send /cancel to cancel this operation."
     )
 
@@ -193,24 +198,43 @@ async def handle_forward_input(client: app, message: Message):
         status_msg = await message.reply_text("🔄 Starting forward process...")
         
         try:
+            # Try to get user client (session) for private groups, fallback to bot
+            user_client = await get_uclient(user_id)
+            forward_client = user_client if user_client else client
+            
             # Verify we can access source group
             try:
-                source_chat = await client.get_chat(source_group)
+                source_chat = await forward_client.get_chat(source_group)
             except Exception as e:
-                await status_msg.edit_text(
-                    f"❌ Cannot access source group: {str(e)[:100]}\n\n"
-                    "Make sure the bot is added to the group and has permission."
-                )
-                del FORWARD_STATE[user_id]
-                return
+                # If bot failed and we have user client, try with user client
+                if forward_client == client and user_client:
+                    try:
+                        source_chat = await user_client.get_chat(source_group)
+                        forward_client = user_client
+                    except Exception as e2:
+                        await status_msg.edit_text(
+                            f"❌ Cannot access source group: {str(e2)[:100]}\n\n"
+                            "Make sure you're logged in with /login for private groups, "
+                            "or the bot is added to the group and has permission."
+                        )
+                        del FORWARD_STATE[user_id]
+                        return
+                else:
+                    await status_msg.edit_text(
+                        f"❌ Cannot access source group: {str(e)[:100]}\n\n"
+                        "For private groups, please login with /login first.\n"
+                        "For public groups, make sure the bot is added and has permission."
+                    )
+                    del FORWARD_STATE[user_id]
+                    return
             
-            # Verify we can access destination
+            # Verify we can access destination (bot should be able to forward)
             try:
                 dest_chat = await client.get_chat(destination)
             except Exception as e:
                 await status_msg.edit_text(
                     f"❌ Cannot access destination: {str(e)[:100]}\n\n"
-                    "Make sure the bot is added to the channel/group and has permission."
+                    "Make sure the bot is added to the channel/group and has permission to forward messages."
                 )
                 del FORWARD_STATE[user_id]
                 return
@@ -230,7 +254,7 @@ async def handle_forward_input(client: app, message: Message):
                 try:
                     # Get messages from the topic
                     # If topic_id is set, we need to filter messages by message_thread_id
-                    async for msg in client.get_chat_history(source_group, limit=1000):
+                    async for msg in forward_client.get_chat_history(source_group, limit=1000):
                         # Check if message is in the topic (if topic_id is set)
                         if topic_id:
                             # Check message_thread_id attribute
@@ -239,7 +263,7 @@ async def handle_forward_input(client: app, message: Message):
                                 continue
                         
                         try:
-                            # Forward the message
+                            # Forward the message (always use bot for forwarding)
                             await client.forward_messages(
                                 chat_id=destination,
                                 from_chat_id=source_group,
@@ -293,7 +317,7 @@ async def handle_forward_input(client: app, message: Message):
                         # Get the message first to check if it's in the topic
                         if topic_id:
                             try:
-                                msg = await client.get_messages(source_group, msg_id)
+                                msg = await forward_client.get_messages(source_group, msg_id)
                                 # Check if message belongs to the topic
                                 msg_thread_id = getattr(msg, 'message_thread_id', None)
                                 if msg_thread_id != topic_id:
@@ -303,7 +327,7 @@ async def handle_forward_input(client: app, message: Message):
                                 failed_count += 1
                                 continue
                         
-                        # Forward the message
+                        # Forward the message (always use bot for forwarding)
                         await client.forward_messages(
                             chat_id=destination,
                             from_chat_id=source_group,
