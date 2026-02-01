@@ -69,30 +69,34 @@ async def parse_message_range(input_text):
     return None, None
 
 @app.on_message(filters.command("forward") & filters.private)
-async def forward_command(client: app, message: Message):
+async def forward_command(client, message: Message):
     """Start the forward command process"""
-    user_id = message.from_user.id
-    
-    # Initialize conversation state
-    FORWARD_STATE[user_id] = {'step': 'source_group'}
-    
-    await message.reply_text(
-        "📤 **Forward Messages from Forum Topic**\n\n"
-        "Send me the source group ID with topic ID in this format:\n"
-        "`-1001234567890/123`\n\n"
-        "Where:\n"
-        "- `-1001234567890` is the group ID\n"
-        "- `123` is the topic ID (message_thread_id)\n\n"
-        "Or just send group ID if you want to forward from the main chat:\n"
-        "`-1001234567890`\n\n"
-        "**Note:**\n"
-        "• For **private groups**: You need to login with `/login` first\n"
-        "• Bot will automatically use your session if available\n\n"
-        "Send /cancel to cancel this operation."
-    )
+    try:
+        user_id = message.from_user.id
+        
+        # Initialize conversation state
+        FORWARD_STATE[user_id] = {'step': 'source_group'}
+        
+        await message.reply_text(
+            "📤 **Forward Messages from Forum Topic**\n\n"
+            "Send me the source group ID with topic ID in this format:\n"
+            "`-1001234567890/123`\n\n"
+            "Where:\n"
+            "- `-1001234567890` is the group ID\n"
+            "- `123` is the topic ID (message_thread_id)\n\n"
+            "Or just send group ID if you want to forward from the main chat:\n"
+            "`-1001234567890`\n\n"
+            "**Note:**\n"
+            "• For **private groups**: You need to login with `/login` first\n"
+            "• Bot will automatically use your session if available\n\n"
+            "Send /cancel to cancel this operation."
+        )
+    except Exception as e:
+        print(f"Error in forward_command: {e}")
+        await message.reply_text(f"❌ Error: {str(e)}")
 
 @app.on_message(filters.command("cancel") & filters.private)
-async def cancel_forward(client: app, message: Message):
+async def cancel_forward(client, message: Message):
     """Cancel the forward operation"""
     user_id = message.from_user.id
     if user_id in FORWARD_STATE:
@@ -109,7 +113,7 @@ async def cancel_forward(client: app, message: Message):
                      'pay', 'redeem', 'gencode', 'single', 'generate', 'keyinfo', 
                      'encrypt', 'decrypt', 'keys', 'setbot', 'rembot', 'forward'])
 )
-async def handle_forward_input(client: app, message: Message):
+async def handle_forward_input(client, message: Message):
     """Handle multi-step input for forward command"""
     user_id = message.from_user.id
     

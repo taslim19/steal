@@ -94,7 +94,7 @@ async def rem_bot_token(C, m):
 
     
 @bot.on_message(login_in_progress & filters.text & filters.private & ~filters.command([
-    'start', 'batch', 'cancel', 'login', 'logout', 'stop', 'set', 'pay',
+    'start', 'batch', 'cancel', 'login', 'logout', 'session', 'stop', 'set', 'pay',
     'redeem', 'gencode', 'generate', 'keyinfo', 'encrypt', 'decrypt', 'keys', 'setbot', 'rembot']))
 async def handle_login_steps(client, message):
     user_id = message.from_user.id
@@ -146,16 +146,34 @@ Please try again with /login.""")
                 await edit_message_safely(status_msg, '🔄 Verifying code...')
                 await temp_client.sign_in(phone, phone_code_hash, code)
                 session_string = await temp_client.export_session_string()
-                encrypted_session = ecs(session_string)
-                await save_user_session(user_id, encrypted_session)
-                await temp_client.disconnect()
-                temp_status_msg = login_cache[user_id]['status_msg']
-                login_cache.pop(user_id, None)
-                login_cache[user_id] = {'status_msg': temp_status_msg}
-                await edit_message_safely(status_msg,
-                    """✅ Logged in successfully!!"""
+                
+                # Check if this is a session generation request
+                generate_session = login_cache[user_id].get('generate_session', False)
+                
+                if generate_session:
+                    # For /session command - return the session string
+                    await temp_client.disconnect()
+                    await edit_message_safely(status_msg,
+                        f"""✅ **Session String Generated!**\n\n
+**Your Pyrogram V2 Session String:**\n
+`{session_string}`\n\n
+⚠️ **Keep this safe!** Don't share it with anyone.\n
+You can use this session string in your Pyrogram applications."""
                     )
-                set_user_step(user_id, None)
+                    login_cache.pop(user_id, None)
+                    set_user_step(user_id, None)
+                else:
+                    # For /login command - save to database
+                    encrypted_session = ecs(session_string)
+                    await save_user_session(user_id, encrypted_session)
+                    await temp_client.disconnect()
+                    temp_status_msg = login_cache[user_id]['status_msg']
+                    login_cache.pop(user_id, None)
+                    login_cache[user_id] = {'status_msg': temp_status_msg}
+                    await edit_message_safely(status_msg,
+                        """✅ Logged in successfully!!"""
+                    )
+                    set_user_step(user_id, None)
             except SessionPasswordNeeded:
                 set_user_step(user_id, STEP_PASSWORD)
                 await edit_message_safely(status_msg,
@@ -175,16 +193,34 @@ Please enter your password:"""
                     )
                 await temp_client.check_password(text)
                 session_string = await temp_client.export_session_string()
-                encrypted_session = ecs(session_string)
-                await save_user_session(user_id, encrypted_session)
-                await temp_client.disconnect()
-                temp_status_msg = login_cache[user_id]['status_msg']
-                login_cache.pop(user_id, None)
-                login_cache[user_id] = {'status_msg': temp_status_msg}
-                await edit_message_safely(status_msg,
-                    """✅ Logged in successfully!!"""
+                
+                # Check if this is a session generation request
+                generate_session = login_cache[user_id].get('generate_session', False)
+                
+                if generate_session:
+                    # For /session command - return the session string
+                    await temp_client.disconnect()
+                    await edit_message_safely(status_msg,
+                        f"""✅ **Session String Generated!**\n\n
+**Your Pyrogram V2 Session String:**\n
+`{session_string}`\n\n
+⚠️ **Keep this safe!** Don't share it with anyone.\n
+You can use this session string in your Pyrogram applications."""
                     )
-                set_user_step(user_id, None)
+                    login_cache.pop(user_id, None)
+                    set_user_step(user_id, None)
+                else:
+                    # For /login command - save to database
+                    encrypted_session = ecs(session_string)
+                    await save_user_session(user_id, encrypted_session)
+                    await temp_client.disconnect()
+                    temp_status_msg = login_cache[user_id]['status_msg']
+                    login_cache.pop(user_id, None)
+                    login_cache[user_id] = {'status_msg': temp_status_msg}
+                    await edit_message_safely(status_msg,
+                        """✅ Logged in successfully!!"""
+                    )
+                    set_user_step(user_id, None)
             except BadRequest as e:
                 await edit_message_safely(status_msg,
                     f"""❌ Incorrect password: {str(e)}
@@ -228,6 +264,21 @@ async def cancel_command(client, message):
         temp_msg = await message.reply('No active login process to cancel.')
         await temp_msg.delete(5)
         
+@bot.on_message(filters.command('session'))
+async def session_command(client, message):
+    """Generate Pyrogram V2 session string"""
+    user_id = message.from_user.id
+    set_user_step(user_id, STEP_PHONE)
+    login_cache.pop(user_id, None)
+    await message.delete()
+    status_msg = await message.reply(
+        """🧵 **Generate Pyrogram V2 Session String**\n\n
+Please send your phone number with country code
+Example: `+12345678900`\n\n
+This will generate a session string that you can use for Pyrogram V2."""
+    )
+    login_cache[user_id] = {'status_msg': status_msg, 'generate_session': True}
+
 @bot.on_message(filters.command('logout'))
 async def logout_command(client, message):
     user_id = message.from_user.id

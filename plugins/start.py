@@ -62,6 +62,7 @@ async def set(_, message):
         BotCommand("start", "🚀 Start the bot"),
         BotCommand("batch", "🫠 Extract in bulk"),
         BotCommand("login", "🔑 Get into the bot"),
+        BotCommand("session", "🧵 Generate Pyrogram V2 session"),
         BotCommand("setbot", "🧸 Add your bot for handling files"),
         BotCommand("logout", "🚪 Get out of the bot"),
         BotCommand("adl", "👻 Download audio from 30+ sites"),
