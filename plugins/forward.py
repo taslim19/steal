@@ -6,7 +6,6 @@ from pyrogram import filters
 from pyrogram.types import Message
 from pyrogram.errors import BadRequest, FloodWait
 from shared_client import app
-from plugins.start import subscribe as sub
 from plugins.batch import get_uclient
 from utils.custom_filters import login_in_progress
 from config import API_ID, API_HASH
@@ -74,10 +73,6 @@ async def forward_command(client: app, message: Message):
     """Start the forward command process"""
     user_id = message.from_user.id
     
-    # Check force subscription
-    if await sub(client, message) == 1:
-        return
-    
     # Initialize conversation state
     FORWARD_STATE[user_id] = {'step': 'source_group'}
     
@@ -91,8 +86,8 @@ async def forward_command(client: app, message: Message):
         "Or just send group ID if you want to forward from the main chat:\n"
         "`-1001234567890`\n\n"
         "**Note:**\n"
-        "• For **public groups**: Bot needs to be admin\n"
-        "• For **private groups**: You need to login with `/login` first\n\n"
+        "• For **private groups**: You need to login with `/login` first\n"
+        "• Bot will automatically use your session if available\n\n"
         "Send /cancel to cancel this operation."
     )
 
@@ -214,27 +209,25 @@ async def handle_forward_input(client: app, message: Message):
                     except Exception as e2:
                         await status_msg.edit_text(
                             f"❌ Cannot access source group: {str(e2)[:100]}\n\n"
-                            "Make sure you're logged in with /login for private groups, "
-                            "or the bot is added to the group and has permission."
+                            "Please login with /login to access private groups."
                         )
                         del FORWARD_STATE[user_id]
                         return
                 else:
                     await status_msg.edit_text(
                         f"❌ Cannot access source group: {str(e)[:100]}\n\n"
-                        "For private groups, please login with /login first.\n"
-                        "For public groups, make sure the bot is added and has permission."
+                        "For private groups, please login with /login first."
                     )
                     del FORWARD_STATE[user_id]
                     return
             
-            # Verify we can access destination (bot should be able to forward)
+            # Verify we can access destination
             try:
                 dest_chat = await client.get_chat(destination)
             except Exception as e:
                 await status_msg.edit_text(
                     f"❌ Cannot access destination: {str(e)[:100]}\n\n"
-                    "Make sure the bot is added to the channel/group and has permission to forward messages."
+                    "Make sure the bot is added to the channel/group."
                 )
                 del FORWARD_STATE[user_id]
                 return
