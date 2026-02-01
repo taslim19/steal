@@ -80,7 +80,8 @@ async def set(_, message):
         BotCommand("terms", "🥺 Terms and conditions"),
         BotCommand("help", "❓ If you're a noob, still!"),
         BotCommand("cancel", "🚫 Cancel login/batch/settings process"),
-        BotCommand("stop", "🚫 Cancel batch process")
+        BotCommand("stop", "🚫 Cancel batch process"),
+        BotCommand("forward", "📤 Forward messages from forum topic")
     ])
  
     await message.reply("✅ Commands configured successfully!")
