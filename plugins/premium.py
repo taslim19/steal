@@ -22,11 +22,8 @@ async def add_premium_handler(event):
             'This command can only be used in private chats for security reasons.'
             )
         return
-    """Handle /add command to add premium users (owner only)"""
+    """Handle /add command to add premium users"""
     user_id = event.sender_id
-    if user_id not in OWNER_ID:
-        await event.respond('This command is restricted to the bot owner.')
-        return
     text = event.message.text.strip()
     parts = text.split(' ')
     if len(parts) != 4:

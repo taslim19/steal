@@ -33,20 +33,10 @@ async def status_handler(event):
     if user_data and "bot_token" in user_data:
         bot_active = True
     
-    # Add premium status check
-    premium_status = "❌ Not a premium member"
-    premium_details = await get_premium_details(user_id)
-    if premium_details:
-        # Convert to IST timezone
-        expiry_utc = premium_details["subscription_end"]
-        expiry_ist = expiry_utc + timedelta(hours=5, minutes=30)
-        formatted_expiry = expiry_ist.strftime("%d-%b-%Y %I:%M:%S %p")
-        premium_status = f"✅ Premium until {formatted_expiry} (IST)"
-    
     await event.respond(
         "**Your current status:**\n\n"
         f"**Login Status:** {'✅ Active' if session_active else '❌ Inactive'}\n"
-        f"**Premium:** {premium_status}"
+        f"**Bot Status:** {'✅ Active' if bot_active else '❌ Inactive'}"
     )
 
 @bot_client.on(events.NewMessage(pattern='/transfer'))
@@ -59,10 +49,7 @@ async def transfer_premium_handler(event):
     user_id = event.sender_id
     sender = await event.get_sender()
     sender_name = get_display_name(sender)
-    if not await is_premium_user(user_id):
-        await event.respond(
-            "❌ You don't have a premium subscription to transfer.")
-        return
+    # Premium transfer feature - no premium check required
     args = event.text.split()
     if len(args) != 2:
         await event.respond(
@@ -111,14 +98,6 @@ async def transfer_premium_handler(event):
                 )
         except Exception as e:
             logger.error(f'Could not notify target user {target_user_id}: {e}')
-        try:
-            owner_id = int(OWNER_ID) if isinstance(OWNER_ID, str
-                ) else OWNER_ID[0] if isinstance(OWNER_ID, list) else OWNER_ID
-            await bot_client.send_message(owner_id,
-                f'♻️ Premium Transfer: {sender_name} ({user_id}) has transferred their premium to {target_name} ({target_user_id}). Expiry: {formatted_expiry}'
-                )
-        except Exception as e:
-            logger.error(f'Could not notify owner about premium transfer: {e}')
         return
     except Exception as e:
         logger.error(
@@ -131,8 +110,7 @@ async def remove_premium_handler(event):
     user_id = event.sender_id
     if not await is_private_chat(event):
         return
-    if user_id not in OWNER_ID:
-        return
+    # No admin check - anyone can use this command
     args = event.text.split()
     if len(args) != 2:
         await event.respond('Usage: /rem user_id\nExample: /rem 123456789')

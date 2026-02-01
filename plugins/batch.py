@@ -6,12 +6,11 @@ import os, re, time, asyncio, json, asyncio
 from pyrogram import Client, filters
 from pyrogram.types import Message
 from pyrogram.errors import UserNotParticipant
-from config import API_ID, API_HASH, LOG_GROUP, STRING, FORCE_SUB, FREEMIUM_LIMIT, PREMIUM_LIMIT
+from config import API_ID, API_HASH, LOG_GROUP, STRING, FORCE_SUB
 from utils.func import get_user_data, screenshot, thumbnail, get_video_metadata
-from utils.func import get_user_data_key, process_text_with_rules, is_premium_user, E
+from utils.func import get_user_data_key, process_text_with_rules, E
 from shared_client import app as X
 from plugins.settings import rename_file
-from plugins.start import subscribe as sub
 from utils.custom_filters import login_in_progress
 from utils.encrypt import dcs
 from typing import Dict, Any, Optional
@@ -394,11 +393,6 @@ async def process_cmd(c, m):
     uid = m.from_user.id
     cmd = m.command[0]
     
-    if FREEMIUM_LIMIT == 0 and not await is_premium_user(uid):
-        await m.reply_text("This bot does not provide free servies, get subscription from OWNER")
-        return
-    
-    if await sub(c, m) == 1: return
     pro = await m.reply_text('Doing some checks hold on...')
     
     if is_user_active(uid):
@@ -493,10 +487,10 @@ async def text_handler(c, m):
             return
         
         count = int(m.text)
-        maxlimit = PREMIUM_LIMIT if await is_premium_user(uid) else FREEMIUM_LIMIT
+        # No limit restrictions - allow any count
 
-        if count > maxlimit:
-            await m.reply_text(f'Maximum limit is {maxlimit}.')
+        if count <= 0:
+            await m.reply_text('Please enter a valid positive number.')
             return
 
         Z[uid].update({'step': 'process', 'did': str(m.chat.id), 'num': count})
