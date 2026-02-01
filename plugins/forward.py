@@ -5,8 +5,25 @@
 from pyrogram import filters
 from pyrogram.types import Message
 from pyrogram.errors import BadRequest, FloodWait
-from shared_client import app
-from plugins.batch import get_uclient
+try:
+    from shared_client import app
+    print(f"✅ Successfully imported app from shared_client: {app}")
+except Exception as e:
+    print(f"❌ ERROR importing app from shared_client: {e}")
+    import traceback
+    traceback.print_exc()
+    raise
+
+try:
+    from plugins.batch import get_uclient
+    print(f"✅ Successfully imported get_uclient from batch")
+except Exception as e:
+    print(f"❌ ERROR importing get_uclient: {e}")
+    import traceback
+    traceback.print_exc()
+    # Don't raise - make it optional
+    get_uclient = None
+
 from utils.custom_filters import login_in_progress
 from config import API_ID, API_HASH
 import asyncio
@@ -16,7 +33,14 @@ import re
 FORWARD_STATE = {}
 
 # Debug: Print when module is loaded
-print("Forward plugin loaded successfully!")
+try:
+    print("Forward plugin loaded successfully!")
+    print(f"App client: {app}")
+    print(f"App client type: {type(app)}")
+except Exception as e:
+    print(f"ERROR loading forward plugin: {e}")
+    import traceback
+    traceback.print_exc()
 
 async def parse_group_topic(input_text):
     """
@@ -73,6 +97,8 @@ async def parse_message_range(input_text):
 
 # Register forward command handler
 print("Registering forward command handler...")
+print(f"App is ready: {app}")
+
 @app.on_message(filters.command("forward") & filters.private)
 async def forward_command(client, message: Message):
     """Start the forward command process"""
@@ -209,8 +235,12 @@ async def handle_forward_input(client, message: Message):
         
         try:
             # Try to get user client (session) for private groups, fallback to bot
-            user_client = await get_uclient(user_id)
-            forward_client = user_client if user_client else client
+            if get_uclient:
+                user_client = await get_uclient(user_id)
+                forward_client = user_client if user_client else client
+            else:
+                forward_client = client
+                user_client = None
             
             # Verify we can access source group
             try:
