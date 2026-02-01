@@ -9,7 +9,6 @@ from pyrogram.types import BotCommand, InlineKeyboardButton, InlineKeyboardMarku
 from config import LOG_GROUP, OWNER_ID, FORCE_SUB
 
 async def subscribe(app, message):
-async def subscribe(app, message):
     # Skip force subscription check if FORCE_SUB is not set (None or 0)
     if not FORCE_SUB:
         return 0
