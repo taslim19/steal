@@ -4,7 +4,7 @@
 
 from shared_client import app
 from pyrogram import filters
-from pyrogram.errors import UserNotParticipant, ChatNotFound, ChannelInvalid, PeerIdInvalid
+from pyrogram.errors import UserNotParticipant, BadRequest, ChannelInvalid, PeerIdInvalid
 from pyrogram.types import BotCommand, InlineKeyboardButton, InlineKeyboardMarkup
 from config import LOG_GROUP, OWNER_ID, FORCE_SUB
 
@@ -17,7 +17,7 @@ async def subscribe(app, message):
         # First, verify the chat exists and bot has access
         try:
             chat = await app.get_chat(FORCE_SUB)
-        except (ChatNotFound, ChannelInvalid, PeerIdInvalid) as e:
+        except (BadRequest, ChannelInvalid, PeerIdInvalid) as e:
             # Chat doesn't exist or bot doesn't have access - skip force subscription check
             print(f"Warning: FORCE_SUB chat {FORCE_SUB} is invalid or inaccessible: {e}")
             return 0  # Continue normally without force subscription check
